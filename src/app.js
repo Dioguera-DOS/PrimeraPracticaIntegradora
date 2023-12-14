@@ -6,13 +6,16 @@ const {Server} = require('socket.io')
 const routerCarts = require('./routes/carts.router');
 const routerViews = require('./routes/views.router');
 const mongoose = require('mongoose')
-
-const {productosModel} = require('./model/productos.model.js')
-const {cartsModel} = require('./model/carts.model.js')
+//const handlebars = require('express-handlebars')
 
 
+// const productosModel = require('./dao/models/productos.model.js')
+// const cartsModel = require('./dao/models/carts.model.js')
+// const messageModel =require('./dao/models/carts.model.js')
 
-const PORT = 8080
+
+
+const PORT = 8080 
 const app = express();
 
 const server = app.listen(PORT, () => console.log("Server online port " + PORT))
@@ -27,27 +30,34 @@ app.use(express.static(path.join(__dirname,'/public')));
 
 
 
+//app.engine('handlebars', handlebars.engine());
 app.engine('handlebars', engine());
 app.set('view engine', 'handlebars');
 app.set('views', path.join(__dirname,'/views'));
+
+
 
 
 app.use('/', routerViews)
 app.use('/api/products', routerProducts)
 app.use('/api/carts', routerCarts)
 
-module.exports = {io}
 
-try {
-    mongoose.connect('mongodb+srv://oliveiradiogo00:z2xGXgqIUN2fgTzo@cluster0.pgeuig7.mongodb.net/?retryWrites=true&w=majority',{dbName:'carts'})
-    mongoose.connect('mongodb+srv://oliveiradiogo00:z2xGXgqIUN2fgTzo@cluster0.pgeuig7.mongodb.net/?retryWrites=true&w=majority',{dbName:'productos'})
-    console.log('DB online')
-} catch (error) {
-    console.log(error.mensage)
-    
+
+async function dataBase(){
+    try {
+        //await mongoose.connect('mongodb+srv://oliveiradiogo00:**********@cluster0.pgeuig7.mongodb.net/?retryWrites=true&w=majority',{dbName:'carts'})
+        await mongoose.connect('mongodb+srv://oliveiradiogo00:************@cluster0.pgeuig7.mongodb.net/?retryWrites=true&w=majority',{ dbName:'ecommerce'})
+        console.log('DB online')
+    } catch (error) {
+        console.log(error.message)        
+    }
 }
 
+dataBase()
 
+
+//module.exports = {io}
 
 
 

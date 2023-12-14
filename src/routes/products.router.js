@@ -1,78 +1,72 @@
 const express = require('express');
 const router = express.Router();
-const ProductManager = require('../controller/productManager');
+//const ProductManager = require('../controller/productManager');
 const io = require('../app')
-const productosModel = require('../model/productos.model')
+const productosModel = require('../dao/models/productos.model');
+const { default: mongoose } = require('mongoose');
+//const productManager = new ProductManager();
 
 
-
-
-const productManager = new ProductManager();
-
+//show all products data.
 router.get('/', async (req, res) => {
-
+    let prod
     try {
-        let prod = await productosModel.find({})
-
-    } catch (error) {
-        console.log(error.mensage)
-    }
-
-    try {
-        const products = await productManager.getProducts();
+        prod = await productosModel.find({})
+        //const products = await productManager.getProducts();
         let limit = req.query.limit ? parseInt(req.query.limit) : undefined;
-
-        if (limit && limit < 0) {
-            return res.status(400).json({ error: "Limit not acepted." });
+        if (limit < 0) {
+            return res.status(400).json({ error: "Limit not acepted." });s
         }
-
         if (limit) {
-            const limitedProducts = products.slice(0, limit);
+            const limitedProducts = prod.slice(0, limit);
             res.status(200).json(limitedProducts);
         } else {
-            res.status(200).json(products);
+            
+            return res.status(200).json(prod);
         }
     } catch (error) {
         res.status(500).json({ error: "Server error!" });
     }
 });
 
-router.get('/:pid', async (req, res) => {
-    try {
-        const productId = parseInt(req.params.pid);
-        const product = await productManager.getProductById(productId);
-        if (product) {
-            res.status(200).json(product);
-        } else {
-            res.status(404).json({ message: "Product not found" });
-        }
-    } catch (error) {
-        res.status(500).json({ error: "Server error!" });
+//show produtc with select ID.
+router.get('/:id', async (req, res) => {
+    let { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) // verificar si ID es valido en MongoDB
+    {
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(400).json({ error: `Ingrese un ID con formato válido` })
     }
+
+    let exist
+
+    try {
+        exist = await productosModel.findOne({ _id: id })
+    } catch (error) {
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({ error: `Error ineperado` })
+    }
+
+    if (!exist) {
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({ error: `user id ${req.params.id} not found` })
+
+    }
+
+
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(200).json({ product_details: exist })
+
+
 });
 
-router.delete('/:pid', async (req, res) => {
-    try {
-        const productId = parseInt(req.params.pid);
-        const result = await productManager.deleteProduct(productId);
 
-        if (result) {
-            res.status(200).json({ message: "Producto borrado correctamente" });
-        } else if (!result) {
-            res.status(404).json({ message: "Producto no encontrado" });
-        } //else {
-        //     res.status(500).json({ error: "Error de servidor!" });
-        // }
-    } catch (error) {
-        res.status(500).json({ error: "Error de servidor!!!!!" });
-    }
-});
-
-
+//creared a new product
 router.post('/', async (req, res) => {
     const { title, description, price, code, stock, category, status } = req.body;
+
     try {
-        let newProd = await productosModel.create({ title, description, price, code, stock, category, status })
+
         const thumbnails = req.body.thumbnails || [];
         const requiredFields = ['title', 'description', 'price', 'code', 'stock', 'category'];
         const missingFields = requiredFields.filter(field => !(field in req.body));
@@ -121,7 +115,7 @@ router.post('/', async (req, res) => {
             status: status !== undefined ? status : true
         };
 
-        //const result = await productManager.addProductRawJSON(productData);
+        let newProd = await productosModel.create(productData)
 
         const responseCodes = {
             "Ya existe un producto con ese código. No se agregó nada.": 400,
@@ -131,31 +125,108 @@ router.post('/', async (req, res) => {
 
         //io.emit("producto", result)
 
-        const reStatus = responseCodes[result] || 500;
-        return res.status(reStatus).json({ message: result });
+        const reStatus = responseCodes[newProd] || 500;
+        return res.status(reStatus).json({ message: "Prod created succesfull", newProd });
 
 
 
     } catch (error) {
-        return res.status(500).json({ error: "Error de servidor!" });
+        return res.status(500).json(error.message);
     }
 });
 
 
-
+//update products
 router.put('/:pid', async (req, res) => {
+    let { pid } = req.params
+    if (!mongoose.Types.ObjectId.isValid(pid)) {
+        res.setHeader('Content-type', 'application/json')
+        return res.status(400).json({ error: "Ivalid ID" })
+    }
+
+    let exist
     try {
+        exist = await productosModel.findOne({ _id: pid })
         const productId = parseInt(req.params.pid);
         const updates = req.body;
-        const result = await productManager.updateProduct(productId, updates);
-        if (result) {
-            res.status(200).json({ message: "Product Updated" });
-        } else {
-            res.status(404).json({ message: "Product not found" });
-        }
+
+
     } catch (error) {
         res.status(500).json({ error: "Error de servidor!" });
     }
-});
+
+    if (!exist) {
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(400).json({ error: `No existen usuarios con id ${pid}` })
+    }
+
+    if (req.body._id || req.body.code) {
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(400).json({ error: `No se pueden modificar la propiedades "_id" y "code"` })
+    }
+
+    let updateProd
+
+    try {
+        updateProd = await productosModel.updateOne({ _id: pid }, req.body)
+        if (updateProd.modifiedCount > 0) {
+            res.setHeader('Content-Type', 'application/json')
+            return res.status(200).json({ payload: 'change sucessfull' })
+        } else {
+            res.setHeader('Content-Type', 'application/json')
+            return res.status(400).json({ payload: 'change failed' })
+        }
+    } catch (error) {
+
+    }
+
+
+})
+
+//delete product
+router.delete('/:id', async (req, res) => {
+
+    let { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(400).json({ error: `Enter a valid ID!!!` })
+    }
+
+    let existe
+    try {
+        existe = await productosModel.findOne({ _id: id })
+        console.log(existe)
+    } catch (error) {
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({ error: `Error inesperado en el servidor - Intente más tarde, o contacte a su administrador`, detalle: error.message })
+    }
+
+    if (!existe) {
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(400).json({ error: `ID ${id} not exist` })
+    }
+
+
+    let resultado
+    try {
+        //resultado=await usuariosModelo.updateOne({deleted:false, _id:id},{$set:{deleted:true}})
+        resultado = await productosModel.deleteOne({ _id: id })
+        console.log(resultado)
+        if (resultado.deletedCount > 0) {
+            res.setHeader('Content-Type', 'application/json');
+            return res.status(200).json({ payload: "Eliminacion realizada" });
+        } else {
+            res.setHeader('Content-Type', 'application/json');
+            return res.status(400).json({ error: `No se concretó la eliminacion` })
+        }
+    } catch (error) {
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({ error: `Error inesperado en el servidor - Intente más tarde, o contacte a su administrador`, detalle: error.message })
+
+    }
+
+
+})
+
 
 module.exports = router;

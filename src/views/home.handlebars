@@ -1,24 +1,43 @@
-<h2 style="color: brown;" >welcome to Products Page</h2>
-<a href="/realtimeproducts"></a>
+<h2>welcome to Products Page</h2>
 <hr>
 <br><br>
 
-<ul>
-    {{#each result}}
 
-    <div>
-        <h3>ID: {{this.id}}</h3>
-        <h3>Title: {{this.title}}</h3>
-        <h3>Descripton: {{this.descripton}}</h3>
-        <h3>Price: {{this.price}}</h3>
-        <h3>Image: {{this.thubnail}}</h3>
-        <h3>Code: {{this.code}}</h3>
-        <h3>stock: {{this.category}}</h3>
-        <h3>Category: {{this.category}}</h3>
-        <h3>Status: {{this.status}}</h3>
-    </div>
-</ul>
+
+{{#each listProd}}
+<div>
+    <h3>ID:{{listProd.description}}</h3>
+    <h3>Name:{{this.code}}</h3>
+    <h3>Title:{{this.name}}</h3>
+    <h3>Descripton:</h3>
+    <h3>Price:</h3>
+    <h3>Image:</h3>
+    <h3>Code:</h3>
+    <h3>stock:</h3>
+    <h3>Category:</h3>
+    <h3>Status: </h3>
+    <hr>
+</div>
 {{/each}}
-<br>
 
-<script src="socket.io/socket.io.js"></script>
+{{!-- <div>
+    <h3>ID:?</h3>
+    <h3>Name: {{listTest.name}} </h3>
+    <h3>Title:{{listTest.titulo}}</h3>
+    <h3>Descripton:{{listTest.descripton}}</h3>
+    <h3>Price:{{listTest.price}}</h3>
+    <h3>Image:{{listTest.image}}</h3> 
+    <h3>Code:{{listTest.code}}</h3>
+    <h3>stock:{{listTest.stock}}</h3>
+    <h3>Category:{{listTest.category}}</h3>
+    <h3>Status:{{listTest.status}}</h3>
+    <hr>
+</div> --}}
+
+
+<br><br>
+
+{{!--
+<script src="socket.io/socket.io.js"></script>--}}
+
+<a href="/api/products" >Home Page Products</a>
